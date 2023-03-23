@@ -26,9 +26,8 @@ int getEndianness()
 
 int getNumDigits(int n)
 {
-	if (n < 10) return 1;
-
 	int digitCount{ 1 };
+
 	while (n > 1)
 	{
 		n /= 10;
@@ -37,35 +36,29 @@ int getNumDigits(int n)
 	return digitCount;
 }
 
-std::vector<unsigned char> readBytesFromFile(const std::string& filename, long byteCount)
+int readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::string& filename)
 {
-	std::vector<unsigned char> bytesBuffer{};
 	std::ifstream in(filename, std::ios::binary);
 	long fileSize{ getFileSize(filename) };
 
-	// Make sure the number of bytes read doesn't exceed the number of bytes in the file
-	if (byteCount > fileSize) byteCount = fileSize;
-
-	char c{};
-	while (byteCount > 0)
+	int bytesRead{ 0 }; 
+	while (bytesRead < fileSize)
 	{
+		char c{};
 		in.get(c);
+
 		bytesBuffer.push_back(static_cast<unsigned char >(c));
 
-		--byteCount;
+		++bytesRead;
 	}
-	return bytesBuffer;
+	return bytesRead;
 }
 
-/* 
-   BEFORE MOVING ON: Clean up both print###Endian functions, make them less sloppy and lazy. Remove magic numbers, the use of numbers in 
-   each clear (e.g. why are you using 8 instead of 16? what do these numbers mean in this context?). Remove redundancy if possible, and
-   add comments.
- */
-
-void printBigEndian(const std::string& filename, const std::vector<unsigned char>& bytesBuffer, long byteCount, int rowSize)
+void printBigEndian(const std::vector<unsigned char>& bytes, long byteCount)
 {
+	int rowSize{ 8 };
 	int address{ 0 };
+
 	for (int i{ 0 }, j{ 1 }, k{ 0 }; i < byteCount; ++i, ++j, ++k)
 	{
 		if (k % 16 == 0)
@@ -74,7 +67,7 @@ void printBigEndian(const std::string& filename, const std::vector<unsigned char
 			address += rowSize * 2;
 		}
 
-		int byte{ static_cast<int>(bytesBuffer.at(i)) };
+		int byte{ static_cast<int>(bytes.at(i)) };
 
 		std::cout << std::setfill('0') << std::setw(2) << std::hex << byte << std::dec;
 
@@ -86,9 +79,11 @@ void printBigEndian(const std::string& filename, const std::vector<unsigned char
 	}
 }
 
-void printLittleEndian(const std::string& filename, const std::vector<unsigned char>& bytesBuffer, long byteCount, int rowSize)
+void printLittleEndian(const std::vector<unsigned char>& bytes, long byteCount)
 {
+	int rowSize{ 8 };
 	int address{ 0 };
+
 	for (int i{ 1 }, j{ 1 }, k{ 0 }; i < byteCount; i += 2, ++j, ++k)
 	{
 		if (k % 8 == 0)
@@ -97,8 +92,8 @@ void printLittleEndian(const std::string& filename, const std::vector<unsigned c
 			address += rowSize * 2;
 		}
 
-		int byteL{ static_cast<int>(bytesBuffer.at(i)) };
-		int byteH{ static_cast<int>(bytesBuffer.at(i-1)) };
+		int byteL{ static_cast<int>(bytes.at(i)) };
+		int byteH{ static_cast<int>(bytes.at(i-1)) };
 
 		std::cout << std::setfill('0') << std::setw(2) << std::hex << byteL << std::dec;
 		std::cout << std::setfill('0') << std::setw(2) << std::hex << byteH << std::dec;
@@ -111,21 +106,14 @@ void printLittleEndian(const std::string& filename, const std::vector<unsigned c
 	}
 }
 
-void printHexDump(const std::string& filename, long byteCount, int rowSize)
+void printHexDump(const std::vector<unsigned char>& bytes, long byteCount)
 {
-	std::vector<unsigned char> bytesBuffer{ readBytesFromFile(filename, byteCount) };
 	int isLittleEndian{ getEndianness() };
 
-	/* This conditional should be inside a "printDefault() function, which is called if no arg is applied or if
-	   the user ONLY specifies endianness.
-
-	   The second option should be printAscii()/printCanonical(), which uses big endian (formatted differently), and displays
-	   ascii characters, regardless of the host machine's endianness. 
-	 */
 	if (!isLittleEndian)
-		printBigEndian(filename, bytesBuffer, byteCount, rowSize);
+		printBigEndian(bytes, byteCount);
 	else
-		printLittleEndian(filename, bytesBuffer, byteCount, rowSize);
+		printLittleEndian(bytes, byteCount);
 }
 
 int main(int argc, char* argv[])
@@ -136,10 +124,18 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
+	std::vector<unsigned char> bytes{};
+	if (!readBytesFromFile(bytes, argv[1]))
+	{
+		std::cout << "Error: Failed to read bytes from file '" << argv[1] << "'\n";
+		return EXIT_FAILURE;
+	}
+
 	// Number of 16-bit groups occupying each row -- NOTE: REMOVE THIS PARAMETER
 	constexpr int rowSize{ 8 }; 
 
-	printHexDump(argv[1], 400, rowSize);
+	// Set a default value for the byteCount parameter -- the size of the file. 
+	printHexDump(bytes, getFileSize(argv[1]));
 
 	return 0;
 }
