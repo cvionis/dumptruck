@@ -1,0 +1,17 @@
+To-Do and Reminders for hexdump implementation for Windows
+===============================================================================================
+
+High Priority
+* Plan out the structure of the program (to the best of your ability) so that you're working towards
+  something coherent.
+* Fix the messy piles of garbage that the print-Endian functions are (Namely, replace atrocious multi-counter
+  for loops with easier to read and maintain loops).
+* Implement command-line arguments.
+* Implement the ability to export results to files. 
+* Remove magic numbers and unnamed constants.
+
+Low(er) Priority
+* Improve the program's output (try experimenting with colors) -- make it more attractive.
+* Add documentation explaining decisions that aren't obvious.
+
+---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------

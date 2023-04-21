@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-/* TODO: Need to remove magic numbers and unnamed constants. */
-
 long getFileSize(const std::string& filename)
 {
 	// Struct containing status of the provided file
@@ -36,7 +34,7 @@ int getNumDigits(int n)
 	return digitCount;
 }
 
-int readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::string& filename)
+long readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::string& filename)
 {
 	std::ifstream in(filename, std::ios::binary);
 	long fileSize{ getFileSize(filename) };
@@ -131,10 +129,6 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 
-	// Number of 16-bit groups occupying each row -- NOTE: REMOVE THIS PARAMETER
-	constexpr int rowSize{ 8 }; 
-
-	// Set a default value for the byteCount parameter -- the size of the file. 
 	printHexDump(bytes, getFileSize(argv[1]));
 
 	return 0;
