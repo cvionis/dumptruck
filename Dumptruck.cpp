@@ -34,6 +34,7 @@ int getNumDigits(int n)
 	return digitCount;
 }
 
+// Store the provided number of bytes as unsigned chars in a vector
 long readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::string& filename)
 {
 	std::ifstream in(filename, std::ios::binary);
@@ -52,7 +53,8 @@ long readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::strin
 	return bytesRead;
 }
 
-void printBigEndian(const std::vector<unsigned char>& bytes, long byteCount)
+// Display bytes in big-endian hexadecimal format
+void displayBigEndian(const std::vector<unsigned char>& bytes, long byteCount)
 {
 	int rowSize{ 8 };
 	int address{ 0 };
@@ -77,7 +79,8 @@ void printBigEndian(const std::vector<unsigned char>& bytes, long byteCount)
 	}
 }
 
-void printLittleEndian(const std::vector<unsigned char>& bytes, long byteCount)
+// Display bytes in little-endian hexadecimal format
+void displayLittleEndian(const std::vector<unsigned char>& bytes, long byteCount)
 {
 	int rowSize{ 8 };
 	int address{ 0 };
@@ -104,14 +107,15 @@ void printLittleEndian(const std::vector<unsigned char>& bytes, long byteCount)
 	}
 }
 
-void printHexDump(const std::vector<unsigned char>& bytes, long byteCount)
+void displayBytes(const std::vector<unsigned char>& bytes, long byteCount)
 {
-	int isLittleEndian{ getEndianness() };
-
-	if (!isLittleEndian)
-		printBigEndian(bytes, byteCount);
-	else
-		printLittleEndian(bytes, byteCount);
+	/* If canonical option present :
+		   print canonical
+	   else:
+		   print default (in which little or big endian is decided)
+	*/
+	//displayBigEndian(bytes, byteCount);
+	displayLittleEndian(bytes, byteCount);
 }
 
 int main(int argc, char* argv[])
@@ -128,8 +132,7 @@ int main(int argc, char* argv[])
 		std::cout << "Error: Failed to read bytes from file '" << argv[1] << "'\n";
 		return EXIT_FAILURE;
 	}
-
-	printHexDump(bytes, getFileSize(argv[1]));
+	displayBytes(bytes, getFileSize(argv[1]));
 
 	return 0;
 }

@@ -4,14 +4,93 @@ To-Do and Reminders for hexdump implementation for Windows
 High Priority
 * Plan out the structure of the program (to the best of your ability) so that you're working towards
   something coherent.
-* Fix the messy piles of garbage that the print-Endian functions are (Namely, replace atrocious multi-counter
-  for loops with easier to read and maintain loops).
-* Implement command-line arguments.
-* Implement the ability to export results to files. 
-* Remove magic numbers and unnamed constants.
+* Rewrite the display functions -- make not overly-complex, easier to comprehend, and more efficient (if 
+  possible).
+* Include simple argument-/option-parsing functionality using std::find (see saved stack overflow post),
+  change behavior of program according to those options.
+* Rather than determining the number of bytes to deal with in the diplay functions, read only the number of
+  bytes specified by the user IN THE ACTUAL READ BYTES FUNCTION.
 
 Low(er) Priority
 * Improve the program's output (try experimenting with colors) -- make it more attractive.
-* Add documentation explaining decisions that aren't obvious.
+* Add comments explaining decisions that aren't obvious if this needs to be done.
 
 ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+
+A Rough Outline of Current Code Organization As It Stands Now:
+- Misc -- Small functions that perform miscellaneous tasks (setting number of digits in a number, getting the 
+  system's endianness, etc.).
+- File operations and data retrieval -- Get file size, read bytes from file, etc.
+- Printing data from a file in various ways -- Print in little endian, print in big endian, print hex dump 
+  (which chooses between the two former choices).
+
+A Rough Outline of How You Could Reorganize Your Code:
+- Misc -- Small functions that perform miscellaneous tasks (setting number of digits in a number, getting 
+  the system's endianness, etc.).
+- File operations and data retrieval -- Get file size, read bytes from file, etc.
+- Print functions -- print the bytes read from a file in different ways -- little endian, big endian, 
+  with or without ASCII. Try to avoid redundancy and repeated code!
+- User input and command-line-option parser/handler function(s) -- self explanatory.
+- Main function -- Print any text or info that doesn't fit into the above (greeting, explanation text, 
+  status text), and use the above input functions to get input and call the appropriate print functions 
+  based on that input, and print any error messages. 
+
+---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+
+General Program Outline
+- Get input in the form of 
+  program [-options] <file>
+- Read the specified number of bytes from the file, store them in a vector
+- Pass options to a general 'display' function, which will decide which specific format to display the bytes in
+  based on the program options, and call the appropriate specific display function. 
+~ Make sure to implement adequate error checking. 
+
+--- --- --- 
+
+Command-Line Options
+* -n, --length <length>		number of bytes to read from the file
+* -C, --canonical			canonical hex+ascii display
+* -h, --help				display a help screen listing possible options
+* -v, --version				display program version 
+* -m, --color mode <mode>	set the color mode: off or on
+
+--- --- --- 
+
+The two display modes you'll need for this simple implementation are the default (hexadecimal output -- either 
+little-endian or big-endian depending on user's system) and canonical (little-endian + ascii). So, actually three
+different display modes: little-endian, big-endian, and little-endian+ascii. These will probably have to be 
+implemented in three separate functions. 
+
+The default mode will group bytes into 16-bit (2-byte) groups, like the 'original' hexdump program on Linux.
+These 16-bit groups will be arranged in little- or big-endian according to the user's system's endianness.
+The canonical mode will group bytes into 8-bit (1-byte) groups. 
+
+---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+
+Rewriting the Display Functions
+- First see if you can make the functions more readable while maintaining the multivariable for-loop structure, by
+  making the role of each variable clear, removing magic numbers and ambigious constants, etc.
+* Default (printLittleEndian() or printBigEndian()):
+  ~ The bytes are printed in groups of two -- the order of the bytes in these groups depend on whether the
+    function is printLittleEndian or printBigEndian.
+  ~ 16 bytes are printed on each row in total -- every 16 bytes, a new row starts.
+  ~ Every row is prepended by an address, which, for all intensive purposes, denotes the distance from the 
+    beginning of the file in bytes (hexadecimal). For example, the first row would have the address
+    0000000, the second would be 0000010, which is 16 in hex, the third: 0000020, which is 32 in hex, and so on.
+    The address increments by 16 (10 in hexadecimal) each row because each row has 16 bytes.
+
+  Little-Endian:
+  ~ A vector of bytes is passed as an argument to the function.
+  ~ Store the value of the address, starting at 0. 
+  ~ Store the row size (bytes) as a constant (16 in this case).
+  ~ In a loop:
+    = Print the current address value followed by a space, padding by zeroes and a width of 7 digits.
+    = Print {rowsize} bytes from the vector of read bytes, printing a space after every two bytes, and padding
+      single-digit bytes with a leading zero.
+    = Increment the address by {rowsize}. 
+    = Repeat until the end of vector is reached.
+
+
+
+
+
