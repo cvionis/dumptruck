@@ -67,33 +67,11 @@ The canonical mode will group bytes into 8-bit (1-byte) groups.
 
 ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
-Rewriting the Display Functions
-- First see if you can make the functions more readable while maintaining the multivariable for-loop structure, by
-  making the role of each variable clear, removing magic numbers and ambigious constants, etc.
-* Generic Rules for Both Default Modes (printLittleEndian() or printBigEndian()):
-  ~ The bytes are printed in groups of two -- the order of the bytes in these groups depend on whether the
-    function is printLittleEndian or printBigEndian.
-  ~ 16 bytes are printed on each row in total -- every 16 bytes, a new row starts.
-  ~ Every row is prepended by an address, which, for all intensive purposes, denotes the distance from the 
-    beginning of the file in bytes (hexadecimal). For example, the first row would have the address
-    0000000, the second would be 0000010, which is 16 in hex, the third: 0000020, which is 32 in hex, and so on.
-    The address increments by 16 (10 in hexadecimal) each row because each row has 16 bytes.
-  ~ Consider making the row length (in bytes) a command-line option choosable by the user. The number the row
-    address increments by each row should depend on this value.
+DisplayCanonical() Function (Using hexdump's output for reference)
 
-  Little-Endian:
-  ~ A vector of bytes is passed as an argument to the function.
-  ~ Store the value of the address, starting at 0. 
-  ~ Store the row size (bytes) as a constant (16 in this case). This is also the value by which the address
-    increments each row.
-  ~ In a loop:
-    = Print the current address value followed by a space, padding by zeroes and a width of 7 digits.
-    = Print {rowsize} bytes from the vector of read bytes, printing a space after every two bytes. Pad
-      single-digit bytes with a leading zero.
-    = Increment the address by {rowsize}. 
-    = Repeat until the end of vector is reached.
+- Individual bytes, not groups of two bytes, are separated by a space.
+- Every 1/2 rowSize, an extra space is printed (there is a defined space halfway between the rows).
 
-
-
-
+- At the end of every row, regardless of its length, the ASCII representation of that row's bytes are printed.
+  These ASCII characters are separated from the main row by a '|' character, and are terminated by the same character.
 

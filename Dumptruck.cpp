@@ -1,5 +1,6 @@
 #include <sys/stat.h>
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -56,13 +57,13 @@ long readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::strin
 	return bytesRead;
 }
 
-// Default hex dump: display bytes in endianness of user's system
+// Default dump: display bytes in endianness of user's system
+/* TODO: Return a value that can be used to implement error checking/handling */
 void displayDefault(const std::vector<unsigned char>& bytes, long byteCount, int rowSize)
 {
-	int address{ 0 };
-	int groupSize{ 2 };
 	int currentGroup{ 1 };
 	int currentByte{ 0 };
+	int address{ 0 };
 
 	while (currentGroup < byteCount)
 	{
@@ -79,9 +80,9 @@ void displayDefault(const std::vector<unsigned char>& bytes, long byteCount, int
 		int byteL{ static_cast<int>(bytes.at(currentGroup)) };
 
 		// Print two bytes from the dump in the specificed byte order (little-endian or big-endian)
+		// TODO: Figure out how to make this check not run every iteration of this loop -- it's redundant!
 		if (getEndianness() == LSB)
 		{
-			
 			std::cout << std::setfill('0') << std::setw(2) << std::hex << byteL << std::dec;
 			std::cout << std::setfill('0') << std::setw(2) << std::hex << byteH << std::dec;
 		}
@@ -90,26 +91,93 @@ void displayDefault(const std::vector<unsigned char>& bytes, long byteCount, int
 			std::cout << std::setfill('0') << std::setw(2) << std::hex << byteH << std::dec;
 			std::cout << std::setfill('0') << std::setw(2) << std::hex << byteL << std::dec;
 		}
+		std::cout << ' ';
 
-		// Formatting: separate bytes by group size with a space and print a newline when rowSize bytes are reached
-		if (currentByte % groupSize == 0)
-			std::cout << ' ';
-		if ((currentByte + 2) % rowSize == 0) // Note: 2 is added to current byte number because it starts w/ value 0.
+		// Print a newline when rowSize bytes are reached
+		if ((currentByte + 2) % rowSize == 0) /* TODO: Figure out why adding 2 works here (same w/ adding 1 in Canonical) */
 			std::cout << '\n';
 
-		currentGroup += 1;
+		currentGroup += 2;
 		currentByte  += 2;
 	}
 }
-void displayBytes(const std::vector<unsigned char>& bytes, long byteCount)
+
+void displayCanonical(const std::vector<unsigned char>& bytes, long byteCount, int rowSize) 
 {
-	/* If canonical option present :
-		   print canonical
-	   else:
-		   print default (in which little or big endian is decided)
-	*/
-	//displayBigEndian(bytes, byteCount);
-	displayDefault(bytes, byteCount, 16);
+	int currentGroup{ 1 };
+	int currentByte{ 0 };
+	int address{ 0 };
+	int currentRowLen{ 0 };
+
+	while (currentByte < byteCount)
+	{
+		// Print padded address signifying number of bytes read from beginning of file
+		if (currentByte % rowSize == 0)
+		{
+			std::cout << std::hex
+				<< std::setfill('0') << std::setw(7) << std::hex << address << ' '
+				<< std::dec;
+			address += rowSize;
+		}
+		int byte{ static_cast<int>(bytes.at(currentByte)) };
+
+		std::cout << std::setfill('0') << std::setw(2) << std::hex << byte << std::dec;
+		std::cout << ' ';
+
+		if ((currentByte+1) % rowSize == 0) 
+			std::cout << '\n';
+
+		++currentByte;
+	}
+}
+
+void displayASCII(const std::vector<unsigned char>& bytes, long byteCount, int rowSize) 
+{
+	int currentGroup{ 1 };
+	int currentByte{ 0 };
+	int address{ 0 };
+	int currentRowLen{ 0 };
+
+	while (currentByte < byteCount)
+	{
+		// Print padded address signifying number of bytes read from beginning of file
+		if (currentByte % rowSize == 0)
+		{
+			std::cout << std::hex
+				<< std::setfill('0') << std::setw(7) << std::hex << address << ' '
+				<< std::dec;
+			address += rowSize;
+		}
+		int byte{ static_cast<int>(bytes.at(currentByte)) };
+
+		// Make sure the symbols for newline and tab are printed rather than a new line or tab
+		if (byte == 0xa)
+			std::cout << std::setfill(' ') << std::setw(2) << "\\n" << " ";
+		if (byte == 0x9)
+			std::cout << std::setfill(' ') << std::setw(2) << "\\t" << " ";
+
+		std::cout << std::setfill(' ') << std::setw(2) << static_cast<char>(byte) << " ";
+
+		if ((currentByte+1) % rowSize == 0) 
+			std::cout << '\n';
+
+		++currentByte;
+	}
+}
+
+void hexDump(const std::vector<unsigned char>& bytes, long byteCount)
+{
+	std::cout << "Choose an output mode:\n\t1) Default\n\t2) Canonical\n\t3) ASCII\n\n>> ";
+	int choice{};
+	std::cin >> choice;
+
+	// Temporary mode list for ease of testing different functions
+	if (choice == 1)
+		displayDefault(bytes, byteCount, 16);
+	if (choice == 2)
+		displayCanonical(bytes, byteCount, 16);
+	if (choice == 3)
+		displayASCII(bytes, byteCount, 16);
 }
 
 int main(int argc, char* argv[])
@@ -126,7 +194,7 @@ int main(int argc, char* argv[])
 		std::cout << "Error: Failed to read bytes from file '" << argv[1] << "'\n";
 		return EXIT_FAILURE;
 	}
-	displayBytes(bytes, getFileSize(argv[1]));
+	hexDump(bytes, getFileSize(argv[1]));
 
 	return 0;
 }
