@@ -124,9 +124,20 @@ void displayCanonical(const std::vector<unsigned char>& bytes, long byteCount, i
 		std::cout << std::setfill('0') << std::setw(2) << std::hex << byte << std::dec;
 		std::cout << ' ';
 
-		if ((currentByte+1) % rowSize == 0) 
-			std::cout << '\n';
-
+		// Print the ASCII representation of the row's bytes at end of the row
+		if ((currentByte + 1) % rowSize == 0)
+		{
+			std::cout << " |";
+			// Start at the bytes at the beginning of the current row
+			int i{ (currentByte + 1) - rowSize };
+			while (i <= currentByte)
+			{
+				// Replace newlines and tab characters with a single space
+				std::cout << static_cast<char>((bytes.at(i)));
+				++i;
+			}
+			std::cout << "| \n";
+		}
 		++currentByte;
 	}
 }
