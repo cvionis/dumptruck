@@ -67,10 +67,41 @@ The canonical mode will group bytes into 8-bit (1-byte) groups.
 
 ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
-DisplayCanonical() Function (Using hexdump's output for reference)
+Command-line option parsing and interpretation
 
-- Individual bytes, not groups of two bytes, are separated by a space.
-- Every 1/2 rowSize, an extra space is printed (there is a defined space halfway between the rows).
+Approach 1
 
-- After each row, start a loop that prints the rowSize bytes that were just printed and stops when 
-  rowSize ASCII characters are printed.
+- Function that takes two parameters: an array of strings (argv[]), and the option whose presence to check for. 
+- Iterate through argv, checking if any of its members equal the provided option to check for. 
+- If so, return true. If not, return false.
+- The code can choose to do something based on whether the option is present in argv. 
+  
+  For example, in main(), you could do something like the following rough prototype:
+
+  ---- ---- ----
+
+  if (isOptionPresent(argv, "-h") || argc < 2)
+  {
+      printUsageMenu();
+      return EXIT_FAILURE;
+  }
+  if (isOptionPresent(argv, "-n"))
+  {
+      readLength = argv.at((getIndexOf(argv, "-n")+1)); // get the value at the index after the option e.g. -n 50. 
+  }
+
+  if (isOptionPresent(argv, "-C"))
+  {
+      displayCanonical(bytes, readLength, rowSize);
+  }
+  if (isOptionPresent(argv, "-a"))
+  {
+      displayASCII(bytes, readLength, rowSize);
+  }
+  else
+  {
+      displayDefault(bytes, readLength, rowSize);
+  }
+
+  ---- ---- ----
+

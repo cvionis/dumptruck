@@ -127,16 +127,20 @@ void displayCanonical(const std::vector<unsigned char>& bytes, long byteCount, i
 		// Print the ASCII representation of the row's bytes at end of the row
 		if ((currentByte + 1) % rowSize == 0)
 		{
-			std::cout << " |";
 			// Start at the bytes at the beginning of the current row
 			int i{ (currentByte + 1) - rowSize };
-			while (i <= currentByte)
+
+			// Create a sequence of ASCII chars from the row's bytes to append to end of row
+			std::string asciiSequence{};
+			for (i; i <= currentByte; ++i)
 			{
-				// Replace newlines and tab characters with a single space
-				std::cout << static_cast<char>((bytes.at(i)));
-				++i;
+				auto asciiChar{ static_cast<char>(bytes.at(i)) };
+				// Convert any newline or tab bytes into periods before including them in string
+				if (asciiChar == '\n' || asciiChar == '\t')
+					asciiChar = '.';
+				asciiSequence += asciiChar;
 			}
-			std::cout << "| \n";
+			std::cout << "|" << asciiSequence << "| \n";
 		}
 		++currentByte;
 	}
@@ -163,9 +167,15 @@ void displayASCII(const std::vector<unsigned char>& bytes, long byteCount, int r
 
 		// Make sure the symbols for newline and tab are printed rather than a new line or tab
 		if (byte == 0xa)
+		{
+			byte = '\0';
 			std::cout << std::setfill(' ') << std::setw(2) << "\\n" << " ";
+		}
 		if (byte == 0x9)
+		{
+			byte = '\0';
 			std::cout << std::setfill(' ') << std::setw(2) << "\\t" << " ";
+		}
 
 		std::cout << std::setfill(' ') << std::setw(2) << static_cast<char>(byte) << " ";
 
@@ -176,26 +186,11 @@ void displayASCII(const std::vector<unsigned char>& bytes, long byteCount, int r
 	}
 }
 
-void hexDump(const std::vector<unsigned char>& bytes, long byteCount)
-{
-	std::cout << "Choose an output mode:\n\t1) Default\n\t2) Canonical\n\t3) ASCII\n\n>> ";
-	int choice{};
-	std::cin >> choice;
-
-	// Temporary mode list for ease of testing different functions
-	if (choice == 1)
-		displayDefault(bytes, byteCount, 16);
-	if (choice == 2)
-		displayCanonical(bytes, byteCount, 16);
-	if (choice == 3)
-		displayASCII(bytes, byteCount, 16);
-}
-
 int main(int argc, char* argv[])
 {
 	if (argc != 2)
 	{
-		std::cerr << "Usage: " << argv[0] << " filename\n";
+		std::cerr << "Usage: " << argv[0] << " <filename>\n";
 		return EXIT_FAILURE;
 	}
 
@@ -205,7 +200,6 @@ int main(int argc, char* argv[])
 		std::cout << "Error: Failed to read bytes from file '" << argv[1] << "'\n";
 		return EXIT_FAILURE;
 	}
-	hexDump(bytes, getFileSize(argv[1]));
 
 	return 0;
 }
