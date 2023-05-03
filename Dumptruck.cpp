@@ -124,11 +124,12 @@ void displayCanonical(const std::vector<unsigned char>& bytes, long byteCount, i
 		std::cout << std::setfill('0') << std::setw(2) << std::hex << byte << std::dec;
 		std::cout << ' ';
 
-		// Print the ASCII representation of the row's bytes at end of the row
-		if ((currentByte + 1) % rowSize == 0)
+		// Print the ASCII representation of the row's bytes at the end of each row
+		if (((currentByte + 1) % rowSize == 0) || (currentByte + 1) == byteCount)
 		{
 			// Start at the bytes at the beginning of the current row
-			int i{ (currentByte + 1) - rowSize };
+			/* TODO: RATHER THAN USE NEXT COMMENT, STORE SUBTRAHEND IN SUITABLY NAMED VARIABLE */
+			int i{ (currentByte + 1) - ((currentByte % rowSize) + 1) }; // Subtrahend gets number of bytes to 'go back' to get to beginning of row
 
 			// Create a sequence of ASCII chars from the row's bytes to append to end of row
 			std::string asciiSequence{};
@@ -140,6 +141,13 @@ void displayCanonical(const std::vector<unsigned char>& bytes, long byteCount, i
 					asciiChar = '.';
 				asciiSequence += asciiChar;
 			}
+			// The width of one byte is 2 characters, and each is followed by a space; 2 + 1 = 3
+			constexpr int spaceWidth{ 3 }; 
+			constexpr int offset{ 2 };
+			// Obtain the padding needed to fill the rest of the current row to rowSize
+			int rowPadding((spaceWidth * (rowSize - (currentByte % rowSize)) - offset));
+
+			std::cout << std::setfill(' ') << std::setw(rowPadding);
 			std::cout << "|" << asciiSequence << "| \n";
 		}
 		++currentByte;
@@ -186,9 +194,26 @@ void displayASCII(const std::vector<unsigned char>& bytes, long byteCount, int r
 	}
 }
 
+int getOption(const std::vector<std::string>& optionsList, const std::string& option)
+{
+	for (int i{ 0 }; i < optionsList.size(); ++i)
+	{
+		if (optionsList.at(i) == option)
+		{
+			// Check if the argument after the discovered option contains a digit; if so, it belongs to that option
+			/* TODO: AVOID REPEATED INDEXING -- USE VARIABLE */
+			if (std::isdigit(optionsList.at(i + 1).at(0)))
+				return std::stoi(optionsList.at(i + 1));
+			else
+				return 0;
+		}
+	}
+	return -1;
+}
+
 int main(int argc, char* argv[])
 {
-	if (argc != 2)
+	if (argc < 2)
 	{
 		std::cerr << "Usage: " << argv[0] << " <filename>\n";
 		return EXIT_FAILURE;
@@ -199,6 +224,14 @@ int main(int argc, char* argv[])
 	{
 		std::cout << "Error: Failed to read bytes from file '" << argv[1] << "'\n";
 		return EXIT_FAILURE;
+	}
+
+	// Convert argv from an array of pointers to a vector of std::strings for easier traversal
+	std::vector<std::string> arguments(argv, argv + argc);
+
+	if (getOption(arguments, "-h") == 0)
+	{
+		std::cout << "Here's a help menu!\n";
 	}
 
 	return 0;

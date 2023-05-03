@@ -67,41 +67,23 @@ The canonical mode will group bytes into 8-bit (1-byte) groups.
 
 ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
+General
+- Implement error checking when necessary.
+
 Command-line option parsing and interpretation
 
-Approach 1
+- You're going to need to be able to get the option name and the value passed after the argument (if the argument allows it).
+- Instead of checking all options in one place in main(), check for the relevant options in the proper context. For example,
+  consider checking if the "-h" or help option was used in main(), and checking for display options in a function that is responsible
+  exclusively for checking display options and printing the correct dump based on those arguments. Both of these contexts should
+  employ the same function(s), however.
 
-- Function that takes two parameters: an array of strings (argv[]), and the option whose presence to check for. 
-- Iterate through argv, checking if any of its members equal the provided option to check for. 
-- If so, return true. If not, return false.
-- The code can choose to do something based on whether the option is present in argv. 
-  
-  For example, in main(), you could do something like the following rough prototype:
 
-  ---- ---- ----
-
-  if (isOptionPresent(argv, "-h") || argc < 2)
+  int getOption(std::vector<std::string>& optionList, std::string& option)
   {
-      printUsageMenu();
-      return EXIT_FAILURE;
+     // Check if option is in optionList using a for loop (so you have easy access
+     // to current and next index). If so, return its index (the current index when
+     // it's found) + 1. In other words, return its value as an integer. index+1 isn't
+     // an integer character, return 0. If the option isn't found, return -1. 
   }
-  if (isOptionPresent(argv, "-n"))
-  {
-      readLength = argv.at((getIndexOf(argv, "-n")+1)); // get the value at the index after the option e.g. -n 50. 
-  }
-
-  if (isOptionPresent(argv, "-C"))
-  {
-      displayCanonical(bytes, readLength, rowSize);
-  }
-  if (isOptionPresent(argv, "-a"))
-  {
-      displayASCII(bytes, readLength, rowSize);
-  }
-  else
-  {
-      displayDefault(bytes, readLength, rowSize);
-  }
-
-  ---- ---- ----
 
