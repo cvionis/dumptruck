@@ -7,8 +7,17 @@
 #include <string>
 #include <vector>
 
-constexpr int LSB{ 1 };
-constexpr int MSB{ 0 };
+namespace optionTypes
+{
+	const std::string OPT_NULL{};
+	const std::string OPT_EXISTS{ " " };
+}
+
+namespace endianness
+{
+	constexpr int LSB{ 1 };
+	constexpr int MSB{ 0 };
+}
 
 long getFileSize(const std::string& filename)
 {
@@ -81,12 +90,12 @@ void displayDefault(const std::vector<unsigned char>& bytes, long byteCount, int
 
 		// Print two bytes from the dump in the specificed byte order (little-endian or big-endian)
 		// TODO: Figure out how to make this check not run every iteration of this loop -- it's redundant!
-		if (getEndianness() == LSB)
+		if (getEndianness() == endianness::LSB)
 		{
 			std::cout << std::setfill('0') << std::setw(2) << std::hex << byteL << std::dec;
 			std::cout << std::setfill('0') << std::setw(2) << std::hex << byteH << std::dec;
 		}
-		else if (getEndianness() == MSB)
+		else if (getEndianness() == endianness::MSB)
 		{
 			std::cout << std::setfill('0') << std::setw(2) << std::hex << byteH << std::dec;
 			std::cout << std::setfill('0') << std::setw(2) << std::hex << byteL << std::dec;
@@ -194,44 +203,86 @@ void displayASCII(const std::vector<unsigned char>& bytes, long byteCount, int r
 	}
 }
 
-int getOption(const std::vector<std::string>& optionsList, const std::string& option)
+// Check for the presence of a provided command-line option and return its associated value
+std::string getOption(const std::vector<std::string>& optionsList, const std::string& option)
 {
-	for (int i{ 0 }; i < optionsList.size(); ++i)
+	// Start at index 1 to ignore first argument, which is always the program name
+	for (int i{ 1 }; i < optionsList.size()-1; ++i)
 	{
 		if (optionsList.at(i) == option)
 		{
-			// Check if the argument after the discovered option contains a digit; if so, it belongs to that option
-			/* TODO: AVOID REPEATED INDEXING -- USE VARIABLE */
-			if (std::isdigit(optionsList.at(i + 1).at(0)))
-				return std::stoi(optionsList.at(i + 1));
-			else
-				return 0;
+			std::string optionValue{ optionsList.at(i + 1) };
+
+			// If an option is followed by a value, and value that isn't another option, return the value
+			if (optionValue.at(0))
+			{
+				if (optionValue.at(0) != '-')
+				{
+					return optionValue;
+				}
+			}
+			// Otherwise, return 0 to indicate that an option with no value was found 
+			else return optionTypes::OPT_EXISTS;
 		}
 	}
-	return -1;
+	return optionTypes::OPT_NULL;
+}
+
+void displayUsage()
+{
+	std::cout << "Usage: Dumptruck [options]\n\nOptions:\n\n";
+	std::cout << "-C, --canonical\t\t\tCanonicalize output (display hex+ascii)\n"
+			  << "-f, --file <filename>\t\tThe name of the file to read from\n"
+		      << "-h, --help\t\t\tDisplay usage and options\n"
+			  << "-n, --length <length>\t\tRead {length} bytes from file\n"
+			  << "-r, --rowsize <size>\t\tSpecify number of bytes in each row of output\n";
 }
 
 int main(int argc, char* argv[])
 {
 	if (argc < 2)
 	{
-		std::cerr << "Usage: " << argv[0] << " <filename>\n";
-		return EXIT_FAILURE;
-	}
-
-	std::vector<unsigned char> bytes{};
-	if (!readBytesFromFile(bytes, argv[1]))
-	{
-		std::cout << "Error: Failed to read bytes from file '" << argv[1] << "'\n";
+		displayUsage();
 		return EXIT_FAILURE;
 	}
 
 	// Convert argv from an array of pointers to a vector of std::strings for easier traversal
-	std::vector<std::string> arguments(argv, argv + argc);
+	const std::vector<std::string> arguments(argv, argv + argc);
 
-	if (getOption(arguments, "-h") == 0)
+	if (getOption(arguments, "-h") == optionTypes::OPT_EXISTS)
 	{
-		std::cout << "Here's a help menu!\n";
+		displayUsage();
+		return EXIT_FAILURE;
+	}
+	
+	const std::string filename{ getOption(arguments, "-f") };
+	if (filename == optionTypes::OPT_NULL || filename == optionTypes::OPT_EXISTS)
+	{
+		displayUsage();
+		return EXIT_FAILURE;
+	}
+
+	int readSize{};
+	std::string readSizeOpt{ getOption(arguments, "-n") };
+
+	if (readSizeOpt == optionTypes::OPT_EXISTS)
+	{
+		displayUsage();
+		return EXIT_FAILURE;
+	}
+	// No read size provided: use default read size (length of input file)
+	if (readSizeOpt == optionTypes::OPT_NULL)
+		readSize = getFileSize(filename);
+	// Read size provided: use user-specified read size
+	else readSize = std::stoi(readSizeOpt);
+		
+	std::cout << readSize << '\n';
+	
+	std::vector<unsigned char> bytes{};
+	if (!readBytesFromFile(bytes, filename))
+	{
+		std::cout << "Error: Failed to read bytes from file '" << filename << "'\n";
+		return EXIT_FAILURE;
 	}
 
 	return 0;

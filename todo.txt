@@ -77,13 +77,20 @@ Command-line option parsing and interpretation
   consider checking if the "-h" or help option was used in main(), and checking for display options in a function that is responsible
   exclusively for checking display options and printing the correct dump based on those arguments. Both of these contexts should
   employ the same function(s), however.
+- You're going to have to take default option values into consideration, and providing values for options that don't have values.Try
+  to keep these things in mind.
+- You also have to take into account that most (all) options will be placed before the file name.
+- Perhaps in the context you need a default value for an option, you can define a constantexpr named 'defaultValue', and use that
+  if the return value of getOption() is OPT_NOVAL.
+
+- Current Task: -n option provided with no value results in default value being used rather than the displaying of usage menu.
 
 
-  int getOption(std::vector<std::string>& optionList, std::string& option)
-  {
-     // Check if option is in optionList using a for loop (so you have easy access
-     // to current and next index). If so, return its index (the current index when
-     // it's found) + 1. In other words, return its value as an integer. index+1 isn't
-     // an integer character, return 0. If the option isn't found, return -1. 
-  }
+- Trying new approach:
+  * All option values are returned as strings. If an option doesnt have a value, the constant OPT_NOVAL (" ") is returned. If the option
+    doesn't exist, the constant OPT_NULL is returned. If needed, a numeric option value can be converted later using std::stoi.
+  * This approach allows me to use an -f or filename option, through which the user aupplies the file to read from. This way, the options
+    and filename (which is itself now an option) can be typed in any order and the program will still work fine.
+  * One downside to this is the weird return values when an option with no value or no option at all are found in the argument list. I tried
+    using a template type as the return type, but it didn't work out. Plus I want the code to be as simple and straightforward as possible.
 
