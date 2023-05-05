@@ -48,13 +48,12 @@ int getNumDigits(int n)
 }
 
 // Store the provided number of bytes as unsigned chars in a vector
-long readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::string& filename)
+long readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::string& filename, const long readSize)
 {
 	std::ifstream in(filename, std::ios::binary);
-	long fileSize{ getFileSize(filename) };
 
 	int bytesRead{ 0 }; 
-	while (bytesRead < fileSize)
+	while (bytesRead < readSize)
 	{
 		char c{};
 		in.get(c);
@@ -68,7 +67,7 @@ long readBytesFromFile(std::vector<unsigned char>& bytesBuffer, const std::strin
 
 // Default dump: display bytes in endianness of user's system
 /* TODO: Return a value that can be used to implement error checking/handling */
-void displayDefault(const std::vector<unsigned char>& bytes, long byteCount, int rowSize)
+void displayDefault(const std::vector<unsigned char>& bytes, const long byteCount, const int rowSize)
 {
 	int currentGroup{ 1 };
 	int currentByte{ 0 };
@@ -111,7 +110,7 @@ void displayDefault(const std::vector<unsigned char>& bytes, long byteCount, int
 	}
 }
 
-void displayCanonical(const std::vector<unsigned char>& bytes, long byteCount, int rowSize) 
+void displayCanonical(const std::vector<unsigned char>& bytes, const long byteCount, const int rowSize) 
 {
 	int currentGroup{ 1 };
 	int currentByte{ 0 };
@@ -163,7 +162,7 @@ void displayCanonical(const std::vector<unsigned char>& bytes, long byteCount, i
 	}
 }
 
-void displayASCII(const std::vector<unsigned char>& bytes, long byteCount, int rowSize) 
+void displayASCII(const std::vector<unsigned char>& bytes, const long byteCount, const int rowSize) 
 {
 	int currentGroup{ 1 };
 	int currentByte{ 0 };
@@ -207,22 +206,28 @@ void displayASCII(const std::vector<unsigned char>& bytes, long byteCount, int r
 std::string getOption(const std::vector<std::string>& optionsList, const std::string& option)
 {
 	// Start at index 1 to ignore first argument, which is always the program name
-	for (int i{ 1 }; i < optionsList.size()-1; ++i)
+	for (int i{ 1 }; i < optionsList.size(); ++i)
 	{
-		if (optionsList.at(i) == option)
+		// Option exists in the argument list
+		if ((optionsList.at(i) == option))
 		{
-			std::string optionValue{ optionsList.at(i + 1) };
+			// If the option is the last element of the argument list, there's no associated value.
+			if (i == optionsList.size()-1)
+				return optionTypes::OPT_EXISTS;
 
-			// If an option is followed by a value, and value that isn't another option, return the value
+			std::string optionValue{ optionsList.at(i + 1) };
+			// Check if the option has an associated value after it in the list
 			if (optionValue.at(0))
 			{
+				// If the value after an option isn't another option, there's an associated value
 				if (optionValue.at(0) != '-')
-				{
 					return optionValue;
-				}
+				// If the value after the option is another option, there's no associated value
+				else
+					return optionTypes::OPT_EXISTS;
 			}
-			// Otherwise, return 0 to indicate that an option with no value was found 
-			else return optionTypes::OPT_EXISTS;
+			else
+				return optionTypes::OPT_EXISTS;
 		}
 	}
 	return optionTypes::OPT_NULL;
@@ -231,7 +236,8 @@ std::string getOption(const std::vector<std::string>& optionsList, const std::st
 void displayUsage()
 {
 	std::cout << "Usage: Dumptruck [options]\n\nOptions:\n\n";
-	std::cout << "-C, --canonical\t\t\tCanonicalize output (display hex+ascii)\n"
+	std::cout << "-A, --ascii\t\t\tDisplay bytes in ASCII form\n"
+	          << "-C, --canonical\t\t\tCanonicalize output (display hex+ASCII)\n"
 			  << "-f, --file <filename>\t\tThe name of the file to read from\n"
 		      << "-h, --help\t\t\tDisplay usage and options\n"
 			  << "-n, --length <length>\t\tRead {length} bytes from file\n"
@@ -249,41 +255,53 @@ int main(int argc, char* argv[])
 	// Convert argv from an array of pointers to a vector of std::strings for easier traversal
 	const std::vector<std::string> arguments(argv, argv + argc);
 
+	// Check for presence of 'help' ("-h") option
 	if (getOption(arguments, "-h") == optionTypes::OPT_EXISTS)
 	{
 		displayUsage();
 		return EXIT_FAILURE;
 	}
-	
+
+	// Check for presence of 'file' ("-f") option
 	const std::string filename{ getOption(arguments, "-f") };
-	if (filename == optionTypes::OPT_NULL || filename == optionTypes::OPT_EXISTS)
+	if ((filename == optionTypes::OPT_NULL) || (filename == optionTypes::OPT_EXISTS))
 	{
 		displayUsage();
 		return EXIT_FAILURE;
 	}
 
-	int readSize{};
+	long fileSize{ getFileSize(filename) };
+	long readSize{};
 	std::string readSizeOpt{ getOption(arguments, "-n") };
-
-	if (readSizeOpt == optionTypes::OPT_EXISTS)
-	{
-		displayUsage();
-		return EXIT_FAILURE;
-	}
-	// No read size provided: use default read size (length of input file)
-	if (readSizeOpt == optionTypes::OPT_NULL)
+	// Set value of 'readSize' ("-n") option
+	if (readSizeOpt == optionTypes::OPT_NULL || readSizeOpt == optionTypes::OPT_EXISTS)
 		readSize = getFileSize(filename);
-	// Read size provided: use user-specified read size
-	else readSize = std::stoi(readSizeOpt);
-		
-	std::cout << readSize << '\n';
-	
+	else 
+		readSize = std::stoi(readSizeOpt);
+
+	if (readSize > fileSize) readSize = fileSize;
+
 	std::vector<unsigned char> bytes{};
-	if (!readBytesFromFile(bytes, filename))
+	if (!readBytesFromFile(bytes, filename, readSize))
 	{
 		std::cout << "Error: Failed to read bytes from file '" << filename << "'\n";
 		return EXIT_FAILURE;
 	}
+
+	int rowSize{ 16 };
+	std::string rowSizeOpt{ getOption(arguments, "-r") };
+	// Set value of 'rowSize' ("-r") option
+	if ((rowSizeOpt != optionTypes::OPT_NULL) && rowSizeOpt != (optionTypes::OPT_EXISTS))
+		rowSize = std::stoi(rowSizeOpt);
+
+	/* Determine display mode from options
+	 * NOTE: If multiple display options are used, the last one typed will be used */
+	if (getOption(arguments, "-A") == optionTypes::OPT_EXISTS)
+		displayASCII(bytes, readSize, rowSize);
+	else if (getOption(arguments, "-C") == optionTypes::OPT_EXISTS)
+		displayCanonical(bytes, readSize, rowSize);
+	else
+		displayDefault(bytes, readSize, rowSize);
 
 	return 0;
 }

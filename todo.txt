@@ -1,96 +1,17 @@
 To-Do and Reminders for hexdump implementation for Windows
 ===============================================================================================
 
-High Priority
-* Plan out the structure of the program (to the best of your ability) so that you're working towards
-  something coherent.
-* Rewrite the display functions -- not overly-complex, easier to comprehend, and more efficient (if 
-  possible).
-* Include simple argument-/option-parsing functionality using std::find (see saved stack overflow post),
-  change behavior of program according to those options.
-* Rather than determining the number of bytes to deal with in the diplay functions, read only the number of
-  bytes specified by the user IN THE ACTUAL READ BYTES FUNCTION.
-
-Low(er) Priority
-* Improve the program's output (try experimenting with colors) -- make it more attractive.
-* Add comments explaining decisions that aren't obvious if this needs to be done.
-
----------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
-
-A Rough Outline of Current Code Organization As It Stands Now:
-- Misc -- Small functions that perform miscellaneous tasks (setting number of digits in a number, getting the 
-  system's endianness, etc.).
-- File operations and data retrieval -- Get file size, read bytes from file, etc.
-- Printing data from a file in various ways -- Print in little endian, print in big endian, print hex dump 
-  (which chooses between the two former choices).
-
-A Rough Outline of How You Could Reorganize Your Code:
-- Misc -- Small functions that perform miscellaneous tasks (setting number of digits in a number, getting 
-  the system's endianness, etc.).
-- File operations and data retrieval -- Get file size, read bytes from file, etc.
-- Print functions -- print the bytes read from a file in different ways -- little endian, big endian, 
-  with or without ASCII. Try to avoid redundancy and repeated code!
-- User input and command-line-option parser/handler function(s) -- self explanatory.
-- Main function -- Print any text or info that doesn't fit into the above (greeting, explanation text, 
-  status text), and use the above input functions to get input and call the appropriate print functions 
-  based on that input, and print any error messages. 
-
----------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
-
-General Program Outline
-- Get input in the form of 
-  program [-options] <file>
-- Read the specified number of bytes from the file, store them in a vector
-- Pass options to a general 'display' function, which will decide which specific format to display the bytes in
-  based on the program options, and call the appropriate specific display function. 
-~ Make sure to implement adequate error checking. 
-
---- --- --- 
-
-Command-Line Options
-* -n, --length <length>		number of bytes to read from the file
-* -C, --canonical			canonical hex+ascii display
-* -h, --help				display a help screen listing possible options
-* -v, --version				display program version 
-* -m, --color mode <mode>	set the color mode: off or on
-
---- --- --- 
-
-The two display modes you'll need for this simple implementation are the default (hexadecimal output -- either 
-little-endian or big-endian depending on user's system) and canonical (little-endian + ascii). So, actually three
-different display modes: little-endian, big-endian, and little-endian+ascii. These will probably have to be 
-implemented in three separate functions. 
-
-The default mode will group bytes into 16-bit (2-byte) groups, like the 'original' hexdump program on Linux.
-These 16-bit groups will be arranged in little- or big-endian according to the user's system's endianness.
-The canonical mode will group bytes into 8-bit (1-byte) groups. 
-
----------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
-
 General
-- Implement error checking when necessary.
-
-Command-line option parsing and interpretation
-
-- You're going to need to be able to get the option name and the value passed after the argument (if the argument allows it).
-- Instead of checking all options in one place in main(), check for the relevant options in the proper context. For example,
-  consider checking if the "-h" or help option was used in main(), and checking for display options in a function that is responsible
-  exclusively for checking display options and printing the correct dump based on those arguments. Both of these contexts should
-  employ the same function(s), however.
-- You're going to have to take default option values into consideration, and providing values for options that don't have values.Try
-  to keep these things in mind.
-- You also have to take into account that most (all) options will be placed before the file name.
-- Perhaps in the context you need a default value for an option, you can define a constantexpr named 'defaultValue', and use that
-  if the return value of getOption() is OPT_NOVAL.
-
-- Current Task: -n option provided with no value results in default value being used rather than the displaying of usage menu.
+* Basic functionality is done! Now to touch up.
+  - Work on TODO comments' tasks.
+  - Remove repeated use of function return values and save them to reused variable instead
+  - Remove any magic numbers.
+  - Rename any ambigiously-named or confused variables.
+  - Implement error checking where necessary.
+  - Organize functions/constants into headers and implementation files based on purpose.
+  - Print a little ascii dumptruck or program title when the usage menu is printed.
 
 
-- Trying new approach:
-  * All option values are returned as strings. If an option doesnt have a value, the constant OPT_NOVAL (" ") is returned. If the option
-    doesn't exist, the constant OPT_NULL is returned. If needed, a numeric option value can be converted later using std::stoi.
-  * This approach allows me to use an -f or filename option, through which the user aupplies the file to read from. This way, the options
-    and filename (which is itself now an option) can be typed in any order and the program will still work fine.
-  * One downside to this is the weird return values when an option with no value or no option at all are found in the argument list. I tried
-    using a template type as the return type, but it didn't work out. Plus I want the code to be as simple and straightforward as possible.
+
+
 
